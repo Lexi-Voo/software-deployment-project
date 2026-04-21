@@ -1,0 +1,35 @@
+name: CI-CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+      - run: npm run build
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Vercel 
+        run: echo "Build successful - ready for deployment (Vercel/Netlify)"
+
+# this is from tutorial, and im not sure if we use it(for render) or we auto deploy directly
+        # run: |
+        #   curl -X POST \
+        #     -H "Authorization: Bearer ${{ secrets.RAILWAY_API_TOKEN }}" \
+        #     -H "Content-Type: application/json" \
+        #     -d '{"query":"mutation { serviceInstanceRedeploy(serviceId: \"${{ secrets.RAILWAY_SERVICE_ID }}\", environmentId: \"${{ secrets.RAILWAY_ENVIRONMENT_ID }}\") }"}' \
+        #     https://backboard.railway.app/graphql/v2
