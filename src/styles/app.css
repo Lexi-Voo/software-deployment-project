@@ -25,6 +25,9 @@ html, body, #root {
   padding: 0;
   width: 100%;
   background: var(--bg);
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(20, 184, 166, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(99, 102, 241, 0.03) 0%, transparent 50%);
   font-family: "Inter", system-ui, sans-serif;
   color: var(--text);
   overflow-x: hidden;
@@ -91,12 +94,87 @@ body {
   background: #0f766e;
 }
 
-/* LAYOUT */
-.page {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  padding: var(--space-6) 0;
+/* RESPONSIVE LAYOUT */
+@media (max-width: 1024px) {
+  .container {
+    padding: 0 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 24px 0;
+  }
+  
+  .hero h1 {
+    font-size: 36px !important;
+  }
+  
+  .search {
+    flex-direction: column;
+  }
+  
+  .search input,
+  .search button {
+    width: 100%;
+  }
+  
+  .city-attractions-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .weather-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 0 12px;
+  }
+  
+  .hero {
+    padding: 16px 0;
+  }
+  
+  .hero h1 {
+    font-size: 28px !important;
+    margin-bottom: 12px !important;
+  }
+  
+  .card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+  
+  .weather-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .weather-card {
+    min-height: 100px;
+    padding: 12px;
+  }
+  
+  .city-image {
+    height: 180px;
+  }
+  
+  .scrollable-attractions {
+    gap: 12px !important;
+  }
+}
+
+/* ANIMATIONS */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card {
@@ -131,6 +209,13 @@ body {
   flex-direction: column;
   justify-content: space-between;
   min-height: 120px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.weather-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .weather-card b {
@@ -161,67 +246,20 @@ body {
 }
 
 /* ATTRACTIONS LIST */
-.attractions-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.scrollable-attractions::-webkit-scrollbar {
+  height: 8px;
 }
 
-.attraction-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  background: #fff;
+.scrollable-attractions::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
 }
 
-.attraction-thumb {
-  width: 54px;
-  height: 54px;
-  border-radius: 6px;
-  object-fit: cover;
-  flex-shrink: 0;
+.scrollable-attractions::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
 }
 
-.attraction-thumb.placeholder {
-  background: #ddd;
-}
-
-.attraction-name {
-  font-size: 14px;
-}
-
-.attraction-row {
-  cursor: pointer;
-  transition: 0.2s ease;
-  background: #fff;
-  transform: scale(1);
-}
-
-.attraction-row:hover {
-  background: #eef2ff;
-  transform: scale(1.12);
-}
-
-
-.attraction-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.attraction-detail {
-  font-size: 12px;
-  color: #64748b;
-  max-height: 0;
-  overflow: hidden;
-  transition: 0.25s ease;
-}
-
-.attraction-row:hover .attraction-detail {
-  max-height: 60px;
-  margin-top: 4px;
+.scrollable-attractions::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }

@@ -1,38 +1,41 @@
-export const getAttractions = async (city) => {
-  const searchUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${city}&language=en&format=json&origin=*`;
+export async function getAttractionImageFromWiki(attractionName, city) {
+  const queries = [
+    `${attractionName} ${city}`,
+    attractionName,
+  ];
 
-  const searchRes = await fetch(searchUrl);
-  const searchData = await searchRes.json();
+  for (const query of queries) {
+    try {
+      const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(
+        query
+      )}&format=json&origin=*`;
 
-  const entityId = searchData.search?.[0]?.id;
-  if (!entityId) return [];
+      const searchRes = await fetch(searchUrl);
+      if (!searchRes.ok) continue;
 
-  const query = `
-  SELECT ?placeLabel ?image WHERE {
-    ?place wdt:P131* wd:${entityId} .
-    ?place wdt:P31/wdt:P279* ?type .
-    OPTIONAL { ?place wdt:P18 ?image }
+      const searchData = await searchRes.json();
+      const title = searchData.query?.search?.[0]?.title;
 
-    VALUES ?type {
-      wd:Q570116
-      wd:Q33506
-      wd:Q1248784
+      if (!title) continue;
+
+      const imageUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=pageimages|pageterms&titles=${encodeURIComponent(
+        title
+      )}&piprop=original&format=json&origin=*`;
+
+      const imageRes = await fetch(imageUrl);
+      if (!imageRes.ok) continue;
+
+      const imageData = await imageRes.json();
+      const pages = imageData.query?.pages || {};
+      const firstPage = Object.values(pages)[0];
+
+      const image = firstPage?.original?.source || null;
+
+      if (image) return image;
+    } catch (error) {
+      console.error(`Wiki image fetch failed for ${query}:`, error);
     }
-
-    SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
   }
-  LIMIT 10
-  `;
 
-  const url =
-    "https://query.wikidata.org/sparql?query=" +
-    encodeURIComponent(query);
-
-  const res = await fetch(url, {
-    headers: { Accept: "application/sparql-results+json" },
-  });
-
-  const data = await res.json();
-
-  return data.results.bindings;
-};
+  return null;
+}

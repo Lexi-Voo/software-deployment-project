@@ -181,4 +181,34 @@
     right: 0;
     border-right-color: var(--border);
   }
+
+  .city-attractions-grid {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+    width: 100%;
+    margin-top: 20px;
+  }
+
+  .city-card-panel {
+    min-width: 0;
+  }
+
+  .attractions-card-panel {
+    min-width: 0;
+    max-height: 420px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  @media (max-width: 900px) {
+    .city-attractions-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .attractions-card-panel {
+      max-height: none;
+    }
+  }
 }
