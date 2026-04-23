@@ -9,12 +9,46 @@ import "../styles/app.css";
 
 export default function Home() {
   const [city, setCity] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [selectedAttraction, setSelectedAttraction] = useState(null);
+  const [uiError, setUiError] = useState("");
+
   const { data, loading, searchCity } = useCityData();
 
   const handleSearch = async () => {
     if (!city.trim()) return;
-    await searchCity({ city });
+
+    setUiError("");
+
+    const today = new Date();
+    const plus5 = new Date();
+    plus5.setDate(today.getDate() + 5);
+
+    const format = (d) => d.toISOString().split("T")[0];
+
+    let finalStartDate = startDate;
+    let finalEndDate = endDate;
+
+    if (!finalStartDate || !finalEndDate) {
+      finalStartDate = format(today);
+      finalEndDate = format(plus5);
+    }
+
+    const start = new Date(finalStartDate);
+    const end = new Date(finalEndDate);
+
+    if (start > end) {
+      setUiError("Start date cannot be after end date. Please adjust your selection.");
+      return;
+    }
+
+    await searchCity({
+      city,
+      startDate: finalStartDate,
+      endDate: finalEndDate,
+    });
+
     setSelectedAttraction(null);
   };
 
@@ -43,61 +77,84 @@ export default function Home() {
     <div>
       <div className="hero">
         <div className="container">
-          <h1 style={{ fontSize: "48px", fontWeight: "700", marginBottom: "16px", textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}>
+          <h1>
             🌍 Travel Dashboard
           </h1>
-          <p style={{ fontSize: "20px", opacity: 0.9, marginBottom: "32px" }}>
+          <p>
             Search cities, explore weather and attractions instantly
           </p>
-          <div className="search" style={{ animation: "fadeInUp 0.8s ease-out" }}>
+
+          <div className="search">
             <input
               value={city}
               onChange={(e) => setCity(e.target.value)}
               placeholder="Enter a city name..."
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSearch();
-              }}
-              style={{ fontSize: "16px", padding: "12px 16px" }}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
-            <button onClick={handleSearch} style={{ fontSize: "16px", padding: "12px 24px" }}>
-              Search
-            </button>
+
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+
+            <button onClick={handleSearch}>Search</button>
           </div>
         </div>
       </div>
 
+      {/* MAIN */}
       <div className="container">
+
+        {uiError && (
+          <div className="card alert">
+            <p>{uiError}</p>
+          </div>
+        )}
+
         {loading && (
-          <div className="card" style={{ textAlign: "center", padding: "40px" }}>
-            <div style={{ fontSize: "24px", marginBottom: "16px" }}>🌍</div>
-            <p style={{ fontSize: "18px", color: "var(--muted)" }}>Loading your travel data...</p>
+          <div className="card loading-state">
+            <div className="loading-icon">🌍</div>
+            <p>Loading your travel data...</p>
           </div>
         )}
 
         <div className="page">
+
           {data && (
             <div className="card">
-              <h2> ⛅ Weather Forecast</h2>
-              <div className="weather-grid">
-                {data.weather.map((day, i) => (
-                  <div className="weather-card" key={i}>
-                    <b>{day.date.slice(5)}</b>
-                    <p>{day.weather?.[0]?.description}</p>
-                    <h3>{day.main?.temp}°C</h3>
-                    <small>Humidity: {day.main?.humidity}%</small>
-                  </div>
-                ))}
-              </div>
+              <h2>⛅ Weather Forecast</h2>
+
+              {data.weather?.length ? (
+                <div className="weather-grid">
+                  {data.weather.map((day, i) => (
+                    <div className="weather-card" key={i}>
+                      <b>{day.date.slice(5)}</b>
+                      <p>{day.weather?.[0]?.description}</p>
+                      <h3>{day.main?.temp}°C</h3>
+                      <small>Humidity: {day.main?.humidity}%</small>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p>No weather data available</p>
+              )}
             </div>
           )}
 
           {data && (
             <div className="city-attractions-grid">
-              <div className="card city-card-panel">
+              <div className="card">
                 <CityCard info={data.info} image={data.image} />
               </div>
 
-              <div className="card attractions-card-panel">
+              <div className="card">
                 <AttractionsList
                   attractions={data.attractions}
                   selectedAttractionId={selectedAttraction?.id}
@@ -107,14 +164,14 @@ export default function Home() {
             </div>
           )}
 
-          {selectedAttraction ? (
-            <div style={{ marginTop: "20px" }}>
+          {selectedAttraction && (
+            <div className="detail-section">
               <AttractionDetail attraction={selectedAttraction} />
             </div>
-          ) : null}
+          )}
 
-          {data?.attractions?.length ? (
-            <div style={{ marginTop: "20px" }}>
+          {data?.attractions?.length && (
+            <div className="detail-section">
               <div className="card">
                 <MapSection
                   attractions={data.attractions}
@@ -123,7 +180,8 @@ export default function Home() {
                 />
               </div>
             </div>
-          ) : null}
+          )}
+
         </div>
       </div>
     </div>

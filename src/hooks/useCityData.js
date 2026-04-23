@@ -7,6 +7,7 @@ import {
   getAttractionImageFromUnsplash,
 } from "../services/unsplashService";
 import { getAttractionImageFromWiki } from "../services/wikidataService";
+import { getHWeather } from "../services/weatherService";
 
 const PLACEHOLDER =
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800";
@@ -14,9 +15,17 @@ const PLACEHOLDER =
 export const useCityData = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const searchCity = async ({ city }) => {
+  const mapToLastYear = (date) => {
+    const d = new Date(date);
+    d.setFullYear(d.getFullYear() - 1);
+    return d;
+  };
+
+  const searchCity = async ({ city, startDate, endDate }) => {
     setLoading(true);
+    setError(null);
 
     try {
       let weatherRaw = null;
@@ -24,19 +33,9 @@ export const useCityData = () => {
       let images = [];
       let rawAttractions = [];
 
-      // Weather
-      try {
-        weatherRaw = await getWeather(city);
-      } catch (error) {
-        console.error("Weather fetch failed:", error);
-        weatherRaw = { list: [] };
-      }
-
-      // City info
       try {
         info = await getCityInfo(city);
-      } catch (error) {
-        console.error("City info fetch failed:", error);
+      } catch {
         info = {
           name: city,
           country: "",
@@ -48,7 +47,75 @@ export const useCityData = () => {
         };
       }
 
-      // City images
+      const lat = info?.lat;
+      const lon = info?.lng;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const format = (d) => {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
+
+      const defaultEnd = new Date(today);
+      defaultEnd.setDate(today.getDate() + 5);
+
+      const start = startDate ? new Date(startDate) : today;
+      const end = endDate ? new Date(endDate) : defaultEnd;
+
+      start.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+
+      const forecastLimit = new Date(today);
+      forecastLimit.setDate(today.getDate() + 16);
+
+      const withinForecast =
+        start >= today && end <= forecastLimit;
+
+      // =========================
+      // WEATHER LOGIC (MERGED)
+      // =========================
+      try {
+        if (!lat || !lon) {
+          weatherRaw = [];
+        } else {
+          if (withinForecast) {
+            // ✔️ pulled version behavior (forecast API)
+            weatherRaw = await getWeather(
+              lat,
+              lon,
+              format(start),
+              format(end)
+            );
+          } else {
+            // ✔️ your version behavior (past fallback)
+            const shiftedStart = mapToLastYear(start);
+            const shiftedEnd = mapToLastYear(end);
+
+            weatherRaw = await getHWeather(
+              lat,
+              lon,
+              format(shiftedStart),
+              format(shiftedEnd)
+            );
+          }
+        }
+      } catch {
+        const shiftedToday = mapToLastYear(today);
+
+        weatherRaw = await getHWeather(
+          lat,
+          lon,
+          format(shiftedToday),
+          format(shiftedToday)
+        );
+      }
+
+      // CITY IMAGES 
+
       try {
         images = await getCityImages(city);
       } catch (error) {
@@ -70,21 +137,9 @@ export const useCityData = () => {
           ? safeImages[Math.floor(Math.random() * safeImages.length)]?.urls?.regular
           : PLACEHOLDER;
 
-      // Weather grouping
-      const dailyMap = {};
-      weatherRaw?.list?.forEach((item) => {
-        const date = item.dt_txt?.split(" ")[0];
-        if (date && !dailyMap[date]) {
-          dailyMap[date] = item;
-        }
-      });
-
-      const dailyWeather = Object.keys(dailyMap).map((date) => ({
-        date,
-        ...dailyMap[date],
-      }));
-
-      // Attraction images
+      const dailyWeather = Array.isArray(weatherRaw)
+        ? weatherRaw
+        : [];
       const attractionsWithImages = await Promise.all(
         (rawAttractions || []).map(async (item) => {
           let wikiImage = null;
@@ -137,5 +192,5 @@ export const useCityData = () => {
     }
   };
 
-  return { data, loading, searchCity };
+  return { data, loading, searchCity, error };
 };
