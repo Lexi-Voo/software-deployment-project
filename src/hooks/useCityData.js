@@ -1,13 +1,7 @@
 import { useState } from "react";
-import { getWeather } from "../services/weatherService";
+import { getWeather, getHWeather } from "../services/weatherService";
 import { getCityInfo } from "../services/placeService";
-import { getAttractions } from "../services/geoapifyService";
-import {
-  getCityImages,
-  getAttractionImageFromUnsplash,
-} from "../services/unsplashService";
-import { getAttractionImageFromWiki } from "../services/wikidataService";
-import { getHWeather } from "../services/weatherService";
+import { getAttractions } from "../services/attractionsService";
 
 const PLACEHOLDER =
   "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800";
@@ -23,156 +17,143 @@ export const useCityData = () => {
     return d;
   };
 
+  const formatDate = (d) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getFallbackCityInfo = (city) => ({
+    name: city,
+    title: city,
+    type: "City",
+    extract: `${city} is a travel destination worth exploring.`,
+    description: `${city} is a travel destination worth exploring.`,
+    image: null,
+    lat: null,
+    lng: null,
+  });
+
   const searchCity = async ({ city, startDate, endDate }) => {
     setLoading(true);
     setError(null);
 
     try {
-      let weatherRaw = null;
       let info = null;
-      let images = [];
       let rawAttractions = [];
+      let weatherRaw = [];
 
+      // --- City info (via backend → SerpAPI) ---
       try {
         info = await getCityInfo(city);
-      } catch {
-        info = {
-          name: city,
-          country: "",
-          description: `${city} is a travel destination worth exploring.`,
-          lat: null,
-          lng: null,
-          formatted: city,
-          placeId: null,
-        };
+      } catch (err) {
+        console.error("City info fetch failed:", err);
+        info = getFallbackCityInfo(city);
       }
 
-      const lat = info?.lat;
-      const lon = info?.lng;
+      let lat = info?.lat;
+      let lon = info?.lng;
+
+      try {
+        rawAttractions = await getAttractions(city);
+      } catch (err) {
+        console.error("Attractions fetch failed:", err);
+        rawAttractions = [];
+      }
+
+      // Fallback: if city coordinates are missing, use first attraction coordinates
+      if ((lat == null || lon == null) && Array.isArray(rawAttractions) && rawAttractions.length > 0) {
+        const firstAttractionWithCoords = rawAttractions.find(
+          (item) => item.lat != null && item.lng != null
+        );
+
+        if (firstAttractionWithCoords) {
+          lat = firstAttractionWithCoords.lat;
+          lon = firstAttractionWithCoords.lng;
+
+          console.log("Using attraction coordinates as weather fallback:", {
+            city,
+            attraction: firstAttractionWithCoords.name,
+            lat,
+            lon,
+          });
+        }
+      }
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-
-      const format = (d) => {
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      };
 
       const defaultEnd = new Date(today);
       defaultEnd.setDate(today.getDate() + 5);
 
       const start = startDate ? new Date(startDate) : today;
       const end = endDate ? new Date(endDate) : defaultEnd;
-
       start.setHours(0, 0, 0, 0);
       end.setHours(0, 0, 0, 0);
 
       const forecastLimit = new Date(today);
       forecastLimit.setDate(today.getDate() + 16);
+      const withinForecast = start >= today && end <= forecastLimit;
 
-      const withinForecast =
-        start >= today && end <= forecastLimit;
-
-      // =========================
-      // WEATHER LOGIC (MERGED)
-      // =========================
+      // --- Weather (Open-Meteo, called directly from frontend) ---
       try {
         if (!lat || !lon) {
           weatherRaw = [];
+        } else if (withinForecast) {
+          weatherRaw = await getWeather(lat, lon, formatDate(start), formatDate(end));
         } else {
-          if (withinForecast) {
-            // ✔️ pulled version behavior (forecast API)
-            weatherRaw = await getWeather(
-              lat,
-              lon,
-              format(start),
-              format(end)
-            );
-          } else {
-            // ✔️ your version behavior (past fallback)
-            const shiftedStart = mapToLastYear(start);
-            const shiftedEnd = mapToLastYear(end);
-
-            weatherRaw = await getHWeather(
-              lat,
-              lon,
-              format(shiftedStart),
-              format(shiftedEnd)
-            );
-          }
+          const shiftedStart = mapToLastYear(start);
+          const shiftedEnd = mapToLastYear(end);
+          weatherRaw = await getHWeather(lat, lon, formatDate(shiftedStart), formatDate(shiftedEnd));
         }
-      } catch {
-        const shiftedToday = mapToLastYear(today);
-
-        weatherRaw = await getHWeather(
-          lat,
-          lon,
-          format(shiftedToday),
-          format(shiftedToday)
-        );
+      } catch (err) {
+        console.error("Weather fetch failed, trying historical fallback:", err);
+        if (lat && lon) {
+          try {
+            const shiftedToday = mapToLastYear(today);
+            weatherRaw = await getHWeather(lat, lon, formatDate(shiftedToday), formatDate(shiftedToday));
+          } catch (_) {
+            weatherRaw = [];
+          }
+        } else {
+          weatherRaw = [];
+        }
       }
 
-      // CITY IMAGES 
-
+      // --- Attractions (via backend → SerpAPI Google Maps) ---
       try {
-        images = await getCityImages(city);
-      } catch (error) {
-        console.error("City image fetch failed:", error);
-        images = [];
-      }
-
-      // Attractions
-      try {
-        rawAttractions = await getAttractions(info);
-      } catch (error) {
-        console.error("Attractions fetch failed:", error);
+        rawAttractions = await getAttractions(city);
+      } catch (err) {
+        console.error("Attractions fetch failed:", err);
         rawAttractions = [];
       }
 
-      const safeImages = Array.isArray(images) ? images : [];
-      const cityImage =
-        safeImages.length > 0
-          ? safeImages[Math.floor(Math.random() * safeImages.length)]?.urls?.regular
-          : PLACEHOLDER;
+      const dailyWeather = Array.isArray(weatherRaw) ? weatherRaw : [];
 
-      const dailyWeather = Array.isArray(weatherRaw)
-        ? weatherRaw
-        : [];
-      const attractionsWithImages = await Promise.all(
-        (rawAttractions || []).map(async (item) => {
-          let wikiImage = null;
-          let unsplashImage = null;
+      // Normalize attraction images — SerpAPI thumbnails are already direct URLs
+      const attractionsWithImages = rawAttractions.map((item) => {
+        const finalImage =
+          item.detailImage ||
+          item.image ||
+          (Array.isArray(item.photos) && item.photos.length > 0
+            ? item.photos[0]
+            : null);
 
-          try {
-            wikiImage = await getAttractionImageFromWiki(item.name, info.name);
-          } catch (error) {
-            console.error(`Wiki image fetch failed for ${item.name}:`, error);
-          }
+        return {
+          ...item,
+          image: finalImage,
+          detailImage: item.detailImage || finalImage,
+          photos:
+            Array.isArray(item.photos) && item.photos.length > 0
+              ? item.photos
+              : finalImage
+              ? [finalImage]
+              : [],
+        };
+      });
 
-          const isSimpleQuery = /^[\x00-\x7F\s"'().,&-]+$/.test(item.name);
-
-          if (!wikiImage && isSimpleQuery) {
-            try {
-              unsplashImage = await getAttractionImageFromUnsplash(
-                item.name,
-                info.name
-              );
-            } catch (error) {
-              console.error(`Unsplash image fetch failed for ${item.name}:`, error);
-            }
-          }
-
-          const finalImage = wikiImage || unsplashImage || PLACEHOLDER;
-
-          return {
-            ...item,
-            image: finalImage,
-            photos: [finalImage],
-          };
-        })
-      );
+      const cityImage = info?.image || PLACEHOLDER;
 
       const result = {
         weather: dailyWeather,
@@ -185,6 +166,7 @@ export const useCityData = () => {
       return result;
     } catch (err) {
       console.error("Failed to fetch city data:", err);
+      setError(err.message || "Failed to fetch city data");
       setData(null);
       return null;
     } finally {

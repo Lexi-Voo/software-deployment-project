@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useCityData } from "../hooks/useCityData";
-import { getAttractionDetails } from "../services/geoapifyService";
 import CityCard from "../components/CityCard";
 import AttractionsList from "../components/AttractionsList";
 import AttractionDetail from "../components/AttractionDetail";
@@ -14,10 +13,13 @@ export default function Home() {
   const [selectedAttraction, setSelectedAttraction] = useState(null);
   const [uiError, setUiError] = useState("");
 
-  const { data, loading, searchCity } = useCityData();
+  const { data, loading, searchCity, error } = useCityData();
 
   const handleSearch = async () => {
-    if (!city.trim()) return;
+    if (!city.trim()) {
+      setUiError("Please enter a city name.");
+      return;
+    }
 
     setUiError("");
 
@@ -27,13 +29,8 @@ export default function Home() {
 
     const format = (d) => d.toISOString().split("T")[0];
 
-    let finalStartDate = startDate;
-    let finalEndDate = endDate;
-
-    if (!finalStartDate || !finalEndDate) {
-      finalStartDate = format(today);
-      finalEndDate = format(plus5);
-    }
+    const finalStartDate = startDate || format(today);
+    const finalEndDate = endDate || format(plus5);
 
     const start = new Date(finalStartDate);
     const end = new Date(finalEndDate);
@@ -43,46 +40,29 @@ export default function Home() {
       return;
     }
 
-    await searchCity({
+    const result = await searchCity({
       city,
       startDate: finalStartDate,
       endDate: finalEndDate,
     });
 
+    if (!result) {
+      setUiError("Unable to load city data. Please try again.");
+    }
+
     setSelectedAttraction(null);
   };
 
-  const handleSelectAttraction = async (attraction) => {
-    try {
-      const fullDetails = await getAttractionDetails(
-        attraction.id,
-        attraction.image
-      );
-
-      setSelectedAttraction({
-        ...attraction,
-        ...fullDetails,
-        photos:
-          fullDetails.photos?.length > 0
-            ? fullDetails.photos
-            : attraction.photos || [],
-      });
-    } catch (error) {
-      console.error("Failed to load attraction details:", error);
-      setSelectedAttraction(attraction);
-    }
+  const handleSelectAttraction = (attraction) => {
+    setSelectedAttraction(attraction);
   };
-
+  
   return (
     <div>
       <div className="hero">
         <div className="container">
-          <h1>
-            🌍 Travel Dashboard
-          </h1>
-          <p>
-            Search cities, explore weather and attractions instantly
-          </p>
+          <h1>🌍 Travel Dashboard</h1>
+          <p>Search cities, explore weather and attractions instantly</p>
 
           <div className="search">
             <input
@@ -109,12 +89,16 @@ export default function Home() {
         </div>
       </div>
 
-      {/* MAIN */}
       <div className="container">
-
         {uiError && (
           <div className="card alert">
             <p>{uiError}</p>
+          </div>
+        )}
+
+        {error && !uiError && (
+          <div className="card alert">
+            <p>{error}</p>
           </div>
         )}
 
@@ -126,7 +110,6 @@ export default function Home() {
         )}
 
         <div className="page">
-
           {data && (
             <div className="card">
               <h2>⛅ Weather Forecast</h2>
@@ -135,33 +118,37 @@ export default function Home() {
                 <div className="weather-grid">
                   {data.weather.map((day, i) => (
                     <div className="weather-card" key={i}>
-                      <b>{day.date.slice(5)}</b>
-                      <p>{day.weather?.[0]?.description}</p>
-                      <h3>{day.main?.temp}°C</h3>
-                      <small>Humidity: {day.main?.humidity}%</small>
+                      <b>{day.date?.slice(5)}</b>
+                      <p>{day.weather?.[0]?.description || "No description"}</p>
+                      <h3>{day.main?.temp ?? "--"}°C</h3>
+                      <small>Humidity: {day.main?.humidity ?? "--"}%</small>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p>No weather data available</p>
+                <p>No weather data available.</p>
               )}
             </div>
           )}
 
           {data && (
-            <div className="city-attractions-grid">
+            <>
               <div className="card">
-                <CityCard info={data.info} image={data.image} />
+                <div className="city-attractions-grid">
+                  <CityCard info={data.info} image={data.image} />
+                </div>
               </div>
 
               <div className="card">
-                <AttractionsList
-                  attractions={data.attractions}
-                  selectedAttractionId={selectedAttraction?.id}
-                  onSelect={handleSelectAttraction}
-                />
+                <div className="attractions-card-panel">
+                  <AttractionsList
+                    attractions={data.attractions || []}
+                    selectedAttractionId={selectedAttraction?.id}
+                    onSelect={handleSelectAttraction}
+                  />
+                </div>
               </div>
-            </div>
+            </>
           )}
 
           {selectedAttraction && (
@@ -170,7 +157,7 @@ export default function Home() {
             </div>
           )}
 
-          {data?.attractions?.length && (
+          {data?.attractions?.length > 0 && (
             <div className="detail-section">
               <div className="card">
                 <MapSection
@@ -181,7 +168,6 @@ export default function Home() {
               </div>
             </div>
           )}
-
         </div>
       </div>
     </div>

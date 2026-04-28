@@ -1,10 +1,22 @@
+import { useEffect, useState } from "react";
+
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800";
+
 export default function AttractionDetail({ attraction }) {
   if (!attraction) return null;
 
   const image =
+    attraction.detailImage ||
     attraction.photos?.[0] ||
     attraction.image ||
-    "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800";
+    FALLBACK_IMAGE;
+
+  const [imgSrc, setImgSrc] = useState(image);
+
+  useEffect(() => {
+    setImgSrc(image);
+  }, [image]);
 
   const detailRows = [
     attraction.address && {
@@ -30,6 +42,18 @@ export default function AttractionDetail({ attraction }) {
         value: attraction.website,
         isLink: true,
       },
+    attraction.rating && {
+      icon: "⭐",
+      label: "Rating",
+      value: attraction.reviewCount
+        ? `${attraction.rating} / 5 (${attraction.reviewCount.toLocaleString()} reviews)`
+        : `${attraction.rating} / 5`,
+    },
+    attraction.price && {
+      icon: "💰",
+      label: "Price",
+      value: attraction.price,
+    }
   ].filter(Boolean);
 
   const hasDetails = detailRows.length > 0;
@@ -48,17 +72,20 @@ export default function AttractionDetail({ attraction }) {
         style={{
           borderRadius: "12px",
           overflow: "hidden",
-          height: "240px",
+          height: "320px",
         }}
       >
         <img
-          src={image}
+          src={imgSrc}
           alt={attraction.name}
+          referrerPolicy="no-referrer"
+          onError={() => setImgSrc(FALLBACK_IMAGE)}
           style={{
             width: "100%",
             height: "100%",
-            objectFit: "cover",
+            objectFit: "contain",
             display: "block",
+            background: "#f3f4f6",
           }}
         />
       </div>

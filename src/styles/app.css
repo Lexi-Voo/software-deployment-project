@@ -94,6 +94,12 @@ body {
   background: #0f766e;
 }
 
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
 /* RESPONSIVE LAYOUT */
 @media (max-width: 1024px) {
   .container {
@@ -219,7 +225,7 @@ body {
   justify-content: space-between;
   min-height: 120px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  cursor: pointer;
+  cursor: null;
 }
 
 .weather-card:hover {

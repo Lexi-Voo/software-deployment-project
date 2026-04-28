@@ -1,16 +1,107 @@
-# React + Vite
+# Travel Planner — Backend Setup
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Stack
+- **Backend**: Node.js + Express  
+- **Attractions & City Info**: SerpAPI (Google Maps + Google Search engines)  
+- **Weather**: Open-Meteo (free, no key needed, called directly from frontend)  
+- **Map**: MapLibre GL + free OpenStreetMap tiles (no key needed)
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 1. Backend Setup
 
-## React Compiler
+```bash
+cd backend
+cp .env.example .env
+# → Add your SERPAPI_API_KEY to .env
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+npm install
+node server.js
+# Server runs on http://localhost:8000
+```
 
-## Expanding the ESLint configuration
+### `.env`
+```
+SERPAPI_API_KEY=your_key_here
+PORT=8000
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## 2. Frontend Setup
+
+### Copy the new service files into your project
+
+Replace these files in your frontend `src/` directory:
+
+| File | Destination |
+|------|-------------|
+| `frontend-services/placeService.js`    | `src/services/placeService.js` |
+| `frontend-services/attractionsService.js` | `src/services/attractionsService.js` |
+| `frontend-services/weatherService.js` | `src/services/weatherService.js` |
+| `frontend-services/useCityData.js`    | `src/hooks/useCityData.js` |
+| `frontend-services/MapSection.jsx`    | `src/components/MapSection.jsx` |
+
+### Frontend `.env` (in your Vite project root)
+```
+VITE_API_URL=http://localhost:8000
+```
+
+### Remove unused env vars
+You can now **delete** these from your frontend `.env`:
+- `VITE_GEOAPIFY_API_KEY`
+- `VITE_UNSPLASH_ACCESS_KEY`
+
+And **uninstall** unused packages (if installed):
+```bash
+npm uninstall unsplash-js  # if present
+```
+
+---
+
+## 3. API Endpoints
+
+### `GET /api/attractions?city=Paris`
+Returns an array of attractions from SerpAPI Google Maps.
+
+**Response shape:**
+```json
+[
+  {
+    "id": "ChIJ...",
+    "name": "Eiffel Tower",
+    "briefIntro": "Landmark",
+    "description": "...",
+    "address": "Champ de Mars, Paris",
+    "lat": 48.8584,
+    "lng": 2.2945,
+    "rating": 4.7,
+    "reviewCount": 212000,
+    "image": "https://...",
+    "photos": ["https://..."],
+    "website": "https://...",
+    "contactNumber": "+33 ...",
+    "openingHours": "Mon: 9am–11pm | Tue: ...",
+    "type": "Tourist attraction"
+  }
+]
+```
+
+### `GET /api/city?name=Paris`
+Returns city info from SerpAPI Google Search knowledge graph + OpenStreetMap geocoding fallback.
+
+**Response shape:**
+```json
+{
+  "name": "Paris",
+  "title": "Paris",
+  "country": "Capital of France",
+  "extract": "Paris is the capital and most populous city of France...",
+  "description": "...",
+  "image": "https://...",
+  "lat": 48.8566,
+  "lng": 2.3522
+}
+```
+
+---
