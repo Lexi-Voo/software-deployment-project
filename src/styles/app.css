@@ -316,6 +316,7 @@ body {
 .loading-state {
   text-align: center;
   padding: 40px;
+  margin-bottom: var(--space-6);
 }
 
 .loading-icon {
