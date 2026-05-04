@@ -33,6 +33,7 @@ export default function CityCard({ info, image }) {
       </h2>
 
       <div
+        className="city-image-frame"
         style={{
           position: "relative",
           borderRadius: "12px",

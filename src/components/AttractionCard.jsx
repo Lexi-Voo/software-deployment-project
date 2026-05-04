@@ -21,6 +21,11 @@ export default function AttractionCard({
     setImgSrc(representativeImage);
   }, [representativeImage]);
 
+  const fullDescription =
+    attraction.description && attraction.description !== attraction.briefIntro
+      ? attraction.description
+      : null;
+
   return (
     <button
       onClick={() => onSelect(attraction)}
@@ -83,6 +88,7 @@ export default function AttractionCard({
 
         {attraction.briefIntro && (
           <p
+            className="attraction-brief"
             style={{
               fontSize: "13px",
               color: "#666",
@@ -98,6 +104,45 @@ export default function AttractionCard({
             {attraction.briefIntro}
           </p>
         )}
+
+        <div className="print-attraction-details">
+          {fullDescription && (
+            <p>
+              <strong>About:</strong> {fullDescription}
+            </p>
+          )}
+          {attraction.address && (
+            <p>
+              <strong>Address:</strong> {attraction.address}
+            </p>
+          )}
+          {attraction.rating && (
+            <p>
+              <strong>Rating:</strong> {attraction.rating}
+              {attraction.reviewCount ? ` (${attraction.reviewCount} reviews)` : ""}
+            </p>
+          )}
+          {attraction.type && (
+            <p>
+              <strong>Type:</strong> {attraction.type}
+            </p>
+          )}
+          {attraction.openingHours && (
+            <p>
+              <strong>Opening hours:</strong> {attraction.openingHours}
+            </p>
+          )}
+          {attraction.contactNumber && (
+            <p>
+              <strong>Contact:</strong> {attraction.contactNumber}
+            </p>
+          )}
+          {attraction.website && (
+            <p>
+              <strong>Website:</strong> {attraction.website}
+            </p>
+          )}
+        </div>
       </div>
     </button>
   );
