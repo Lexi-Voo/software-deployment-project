@@ -10,6 +10,7 @@ export default function Home() {
   const [city, setCity] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [searchedTrip, setSearchedTrip] = useState(null);
   const [selectedAttraction, setSelectedAttraction] = useState(null);
   const [uiError, setUiError] = useState("");
 
@@ -48,13 +49,34 @@ export default function Home() {
 
     if (!result) {
       setUiError("Unable to load city data. Please try again.");
+      setSearchedTrip(null);
+      setSelectedAttraction(null);
+      return;
     }
 
+    setSearchedTrip({
+      destination: result.info?.title || result.info?.name || city.trim(),
+      startDate: finalStartDate,
+      endDate: finalEndDate,
+    });
     setSelectedAttraction(null);
   };
 
   const handleSelectAttraction = (attraction) => {
     setSelectedAttraction(attraction);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const formatDisplayDate = (date) => {
+    if (!date) return "Not selected";
+    return new Date(date).toLocaleDateString("en-MY", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
   
   return (
@@ -110,6 +132,33 @@ export default function Home() {
         )}
 
         <div className="page">
+          {data && searchedTrip && (
+            <div className="card print-trip-summary">
+              <h2>Travel Results</h2>
+              <div className="trip-summary-grid">
+                <p>
+                  <strong>Destination:</strong> {searchedTrip.destination}
+                </p>
+                <p>
+                  <strong>Travel from:</strong>{" "}
+                  {formatDisplayDate(searchedTrip.startDate)}
+                </p>
+                <p>
+                  <strong>Travel to:</strong>{" "}
+                  {formatDisplayDate(searchedTrip.endDate)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {data && (
+            <div className="results-actions">
+              <button className="print-button" onClick={handlePrint}>
+                Print Results
+              </button>
+            </div>
+          )}
+
           {data && (
             <div className="card">
               <h2>⛅ Weather Forecast</h2>
