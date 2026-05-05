@@ -100,6 +100,34 @@ body {
   gap: 28px;
 }
 
+.results-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.print-button {
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: none;
+  background: var(--secondary);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.print-button:hover {
+  background: #4f46e5;
+}
+
+.print-attraction-details {
+  display: none;
+}
+
+.print-trip-summary {
+  display: none;
+}
+
 /* RESPONSIVE LAYOUT */
 @media (max-width: 1024px) {
   .container {
@@ -332,4 +360,155 @@ body {
 /* DETAIL SECTIONS */
 .detail-section {
   margin-top: 20px;
+}
+
+@media print {
+  html,
+  body,
+  #root {
+    background: white !important;
+    background-image: none !important;
+  }
+
+  .hero,
+  .results-actions,
+  .detail-section {
+    display: none !important;
+  }
+
+  .print-trip-summary {
+    display: block !important;
+  }
+
+  .print-trip-summary h2 {
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+
+  .trip-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .trip-summary-grid p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .trip-summary-grid strong {
+    font-weight: 700;
+  }
+
+  .container {
+    max-width: none;
+    padding: 0;
+  }
+
+  .page {
+    gap: 16px;
+  }
+
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #ddd;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .attractions-card-panel {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .scrollable-attractions {
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+
+  .scrollable-attractions > div {
+    min-width: 0 !important;
+    width: 100% !important;
+    margin-bottom: 14px;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .scrollable-attractions button {
+    width: 100% !important;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    border-radius: 8px !important;
+    padding: 14px !important;
+    transform: none !important;
+    cursor: default !important;
+    gap: 16px !important;
+    align-items: flex-start !important;
+  }
+
+  .city-title {
+    background: none !important;
+    -webkit-text-fill-color: #000 !important;
+  }
+
+  .city-card,
+  .city-card > div {
+    overflow: visible !important;
+  }
+
+  .city-image-frame {
+    width: 80% !important;
+    height: 320px !important;
+    margin: 0 auto 18px !important;
+    box-shadow: none !important;
+  }
+
+  .city-image-frame > div {
+    display: none !important;
+  }
+
+  .city-image-frame img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+  }
+
+  .scrollable-attractions img {
+    width: 120px !important;
+    height: 120px !important;
+    max-height: 120px;
+    object-fit: contain !important;
+    box-shadow: none !important;
+  }
+
+  .attraction-brief {
+    display: block !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    -webkit-line-clamp: unset !important;
+    -webkit-box-orient: unset !important;
+  }
+
+  .print-attraction-details {
+    display: block;
+    margin-top: 8px;
+  }
+
+  .print-attraction-details p {
+    margin: 4px 0;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .print-attraction-details strong {
+    font-weight: 700;
+    color: #111;
+  }
+
+  .weather-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
 }
