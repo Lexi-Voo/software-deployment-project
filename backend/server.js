@@ -10,6 +10,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get('/health', (req, res) => res.sendStatus(200));
+
 function httpGet(url) {
   return new Promise((resolve, reject) => {
     https
