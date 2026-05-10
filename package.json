@@ -7,7 +7,11 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run tests/unit",
+    "test:coverage": "vitest run tests/unit --coverage",
+    "test:api": "newman run tests/api/collection.json",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "maplibre-gl": "^5.23.0",
