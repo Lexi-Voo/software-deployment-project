@@ -68,7 +68,7 @@ api-tests:
         PORT: 3000
 
     - name: Run Newman API tests
-      run: npx run test:api
+      run: npx run test-api
 
 # Deploy before E2E so Playwright tests run against the test deployment
 build-and-deploy:
@@ -138,7 +138,7 @@ e2e-tests:
       run: npx playwright install --with-deps
 
     - name: Run Playwright E2E tests
-      run: npm run test:e2e 
+      run: npm run test-e2e 
       env:
         VITE_API_URL: ${{ secrets.TEST_BACKEND_URL }}
 
