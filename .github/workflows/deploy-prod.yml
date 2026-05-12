@@ -114,7 +114,7 @@ jobs:
         run: |
           curl -f ${{ secrets.PROD_FRONTEND_URL }} || exit 1
 
-      - name: Check attractions endpoint
+      - name: Check API endpoint
         run: |
-          curl -f "${{ secrets.PROD_BACKEND_URL }}/api/attractions?city=Kuala+Lumpur" || exit 1
+          curl -f "${{ secrets.PROD_BACKEND_URL }}/api/city?name=Paris" || exit 1
   
