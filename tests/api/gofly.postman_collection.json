@@ -1,0 +1,192 @@
+{
+  "info": {
+    "_postman_id": "e0e68c6b-eca4-4560-aec8-d9b247e5bc4e",
+    "name": "Travel-API-Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54619728",
+    "_collection_link": "https://go.postman.co/collection/54619728-e0e68c6b-eca4-4560-aec8-d9b247e5bc4e?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "GET Health Check",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Server is healthy\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Root Status",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status is 200\", () => pm.response.to.have.status(200));\r",
+              "\r",
+              "pm.test(\"Returns correct service status\", function () {\r",
+              "    const jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData.status).to.eql(\"ok\");\r",
+              "    pm.expect(jsonData.service).to.eql(\"backend running\");\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET City Info",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "\r",
+              "pm.test(\"Status code is 200\", function () {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "\r",
+              "pm.test(\"Response contains all required city fields\", function () {\r",
+              "    const jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData).to.have.property('name');\r",
+              "    pm.expect(jsonData).to.have.property('extract');\r",
+              "    pm.expect(jsonData).to.have.property('lat');\r",
+              "    pm.expect(jsonData).to.have.property('lng');\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Coordinates are valid numbers\", function () {\r",
+              "    const jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData.lat).to.be.a('number');\r",
+              "    pm.expect(jsonData.lng).to.be.a('number');\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/city?name=Kuala Lumpur",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "city"
+          ],
+          "query": [
+            {
+              "key": "name",
+              "value": "Kuala Lumpur"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET Attraction List",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", () => {\r",
+              "    pm.response.to.have.status(200);\r",
+              "});\r",
+              "\r",
+              "pm.test(\"Returns an array of attractions\", function () {\r",
+              "    const jsonData = pm.response.json();\r",
+              "    pm.expect(jsonData).to.be.an('array');\r",
+              "    \r",
+              "    if (jsonData.length > 0) {\r",
+              "        pm.expect(jsonData[0]).to.have.property('name');\r",
+              "        pm.expect(jsonData[0]).to.have.property('address');\r",
+              "        pm.expect(jsonData[0]).to.have.property('lat');\r",
+              "    }\r",
+              "});"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:3000/api/attractions?city=Kuala Lumpur",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "3000",
+          "path": [
+            "api",
+            "attractions"
+          ],
+          "query": [
+            {
+              "key": "city",
+              "value": "Kuala Lumpur"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
