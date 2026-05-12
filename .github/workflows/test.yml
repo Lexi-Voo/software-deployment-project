@@ -58,7 +58,7 @@ jobs:
           SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
           PORT: 3000
       - name: Run Newman API tests
-        run: npm run test:api
+        run: npm run test-api
 
   build-and-deploy:
     name: Build and Deploy to Testing
@@ -129,7 +129,7 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
       - name: Run Playwright E2E tests
-        run: npm run test:e2e
+        run: npm run test-e2e
         env:
           VITE_API_URL: ${{ secrets.TEST_BACKEND_URL }}
       - name: Upload Playwright Report
