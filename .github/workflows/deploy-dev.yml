@@ -28,7 +28,7 @@ jobs:
         run: npx vitest run
         env: 
           SERPAPI_KEY: ${{ secrets.SERP_API_KEY }}
-          VITE_API_URL: http://localhost:8000
+          VITE_API_URL: http://localhost:3001
   
   # Build Docker image and deploy to Dev Azure Container App ( Only runs if unit tests pass)
   build-and-deploy-dev:
