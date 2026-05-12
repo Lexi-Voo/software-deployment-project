@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:api": "newman run tests/api/gofly.postman_collection.json --env-var baseUrl=http://localhost:8000",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "maplibre-gl": "^5.23.0",
