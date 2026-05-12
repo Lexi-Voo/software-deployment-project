@@ -1,17 +1,28 @@
-name: Deploy Production Backend to Azure
+# ============================================================
+# Branch: Production
+# Trigger: push/merge into Production (i.e. when a PR from Testing is merged)
+# Flow: build & push to ACR → deploy backend to gofly-backend-prod
+#       → deploy frontend to Vercel (production)
+#
+# No tests here — code has already passed unit + API + E2E in Testing.
+# The production job focuses purely on fast, reliable delivery.
+# ============================================================
+
+name: Deploy to Production
 
 on:
   push:
     branches:
-      - Production
+      - Production   # fires when a PR from Testing is merged here
 
 jobs:
-  build-and-deploy-prod:
+  # Build backend Docker image and deploy to prod container app
+  deploy-backend:
+    name: Deploy backend to prod
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Production branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Login to Azure Container Registry
         uses: docker/login-action@v3
@@ -20,22 +31,65 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      - name: Build production Docker image
-        run: |
-          docker build -t ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:prod ./backend
-
-      - name: Push production Docker image to Azure Container Registry
-        run: |
-          docker push ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:prod
+      # Tags: :prod (stable) + commit SHA (rollback)
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:prod
+            ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:prod-${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:cache-prod
+          cache-to: type=registry,ref=${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:cache-prod,mode=max
 
       - name: Login to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy image to Production Azure Container App
+      # Production gets higher max-replicas for real traffic.
+      # min-replicas 1 keeps the container warm — no cold start for real users.
+      - name: Deploy to production container app
         run: |
           az containerapp update \
             --name gofly-backend-prod \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:prod
+            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:prod-${{ github.sha }} \
+            --set-env-vars \
+              SERPAPI_API_KEY=${{ secrets.SERPAPI_API_KEY }} \
+              REDIS_URL=${{ secrets.PROD_REDIS_URL }} \
+              NODE_ENV=production \
+            --min-replicas 1 \
+            --max-replicas 10
+
+  # Deploy frontend to Vercel 
+  # Runs in parallel with backend deploy since they are independent (no need to wait)
+  deploy-frontend:
+    name: Deploy frontend to Vercel
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Build is validated here before handing off to Vercel
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.PROD_BACKEND_URL }}
+
+      - name: Deploy to Vercel (production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: "--prod"
