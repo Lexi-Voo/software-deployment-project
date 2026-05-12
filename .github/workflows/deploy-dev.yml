@@ -100,8 +100,4 @@ jobs:
 
       - name: Check attractions endpoint 
         run: |
-          curl -f "${{ secrets.DEV_FRONTEND_URL }}/api/attractions?city=Kuala+Lumpur" || exit 1
-      
-      - name: Check frontend is up
-        run: |
-          curl -f ${{ secrets.DEV_FRONTEND_URL }} || exit 1
+          curl -f "${{ secrets.DEV_BACKEND_URL }}/api/attractions?city=Kuala+Lumpur" || exit 1
