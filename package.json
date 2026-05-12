@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test-api": "newman run tests/api/gofly.postman_collection.json --env-var baseUrl=http://localhost:3000",
+    "test-api": "newman run tests/api/gofly.postman_collection.json --env-var baseUrl=http://localhost:3001",
     "test-e2e": "playwright test"
   },
   "dependencies": {
