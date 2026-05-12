@@ -6,13 +6,41 @@ on:
       - Development
 
 jobs:
-  build-and-deploy-dev:
+  # Unit Tests (Must pass before anything is built or deployed)
+  unit-test:
+    name: Unit tests (Vitest)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install frontend dependencies
+        run: npm install ci
 
+      - name: Install backend dependencies
+        run: cd backend && npm install
+
+      - name: Run unit tests
+        run: npx vitest run
+        env: 
+          SERPAPI_KEY: ${{ secrets.SERP_API_KEY }}
+          VITE_API_URL: http://localhost:8000
+  
+  # Build Docker image and deploy to Dev Azure Container App ( Only runs if unit tests pass)
+  build-and-deploy-dev:
+    name: Build and Deploy to dev
+    needs: unit-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Login to ACR using docker/login-action so Docker layer cache (cache-from / chache-to)
+      # works correctly with the registry
       - name: Login to Azure Container Registry
         uses: docker/login-action@v3
         with:
@@ -20,22 +48,36 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:dev ./backend
 
-      - name: Push Docker image to Azure Container Registry
-        run: |
-          docker push ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:dev
-
-      - name: Login to Azure
+      # Build with layer cache - massively speeds uop repeat buils
+      # Tags image with both :dev (stable ref) and commit SHA (for rollabck)
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:dev
+            ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:${{ github.sha }}
+          cache-from: type=registry,ref=${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:cache-dev
+          cache-to: type=registry,ref=${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:cache-dev,mode=max
+      
+       -name: Login to Azure
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy image to Azure Container App
+      # Deploy using the SHA-tagged image so that the exact image is unambiguous
+      # min-replicas 0 = scales to zero when idle (save cost)
+      # max-replicas 2 = enough for dev
+      - name: Deploy to dev container app
         run: |
           az containerapp update \
             --name gofly-backend-dev \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:dev
+            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:dev-${{ github.sha }} \
+            --set-env-vars SERPAPI_KEY=${{ secrets.SERP_API_KEY }} \
+            REDIS_URL=${{ secrets.REDIS_URL }} \
+            NODE_ENV=development \
+            --min-replicas 0 \
+            --max-replicas 2
