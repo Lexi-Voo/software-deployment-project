@@ -77,10 +77,11 @@ jobs:
           az containerapp update \
             --name gofly-backend-dev \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:dev-${{ github.sha }} \
-            --set-env-vars SERPAPI_KEY=${{ secrets.SERP_API_KEY }} \
-            REDIS_URL=${{ secrets.REDIS_URL }} \
-            NODE_ENV=development \
+            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:dev \
+            --set-env-vars \
+              SERPAPI_API_KEY=${{ secrets.SERPAPI_API_KEY }} \
+              REDIS_URL=${{ secrets.DEV_REDIS_URL }} \
+              NODE_ENV=development \
             --min-replicas 0 \
             --max-replicas 2
 
