@@ -2,34 +2,111 @@ name: CI-CD
 
 on:
   push:
-    branches: [main]
+    branches: [Testing, Development, Production]
+  pull_request:
+    branches: [Testing, Development, Production]
 
 jobs:
-  test:
+  unit-test:
+    name: Unit testing with Vitest
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: "npm"
+      - run: npm ci
+      - name: Install All Dependencies
+        run: |
+          npm install
+          cd backend && npm install
+      - name: Run All Unit Tests
+        run: npx vitest run 
+        env:
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+          VITE_API_URL: http://localhost:8000
 
-      - run: npm install
-      - run: npm run build
+  api-tests:
+    name: API Testing (Postman)
+    needs: unit-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Start Backend in Background
+        run: |
+          cd backend
+          npm install
+          node server.js & 
+          npx wait-on http://localhost:8000/health
+        env:
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+          PORT: 8000
+      - name: Run Newman Tests
+        run: npm run test:api 
+
+  e2e-tests:
+    name: E2E Testing (Playwright)
+    needs: api-tests
+    if: github.ref == 'refs/heads/Production'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Start Backend for E2E
+        run: |
+          cd backend
+          npm install
+          node server.js &
+          npx wait-on http://localhost:8000/health
+        env:
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+          PORT: 8000
+      - name: Run Playwright
+        run: npm run test:e2e 
+        env:
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+          VITE_API_URL: http://localhost:8000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
 
   deploy:
-    needs: test
+    name: Production Deployment
+    needs: e2e-tests
+    if: github.ref == 'refs/heads/Production'
     runs-on: ubuntu-latest
-
     steps:
-      - name: Deploy to Vercel 
-        run: echo "Build successful - ready for deployment (Vercel/Netlify)"
-
-# this is from tutorial, and im not sure if we use it(for render) or we auto deploy directly
-        # run: |
-        #   curl -X POST \
-        #     -H "Authorization: Bearer ${{ secrets.RAILWAY_API_TOKEN }}" \
-        #     -H "Content-Type: application/json" \
-        #     -d '{"query":"mutation { serviceInstanceRedeploy(serviceId: \"${{ secrets.RAILWAY_SERVICE_ID }}\", environmentId: \"${{ secrets.RAILWAY_ENVIRONMENT_ID }}\") }"}' \
-        #     https://backboard.railway.app/graphql/v2
+      - uses: actions/checkout@v4
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Build and Deploy Backend
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          appSourcePath: ${{ github.workspace }}/backend
+          containerAppName: gofly-backend-dev
+          registryUrl: goflyreg-d9fcexe6ecc6ddgt.azurecr.io
+          registryUsername: ${{ secrets.ACR_USERNAME }}
+          registryPassword: ${{ secrets.ACR_PASSWORD }}
+          resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP }}
+      - name: Deploy Frontend to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
