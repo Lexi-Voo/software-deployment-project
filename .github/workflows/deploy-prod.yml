@@ -30,6 +30,9 @@ jobs:
           registry: ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       # Tags: :prod (stable) + commit SHA (rollback)
       - name: Build and push Docker image
