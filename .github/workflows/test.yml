@@ -118,12 +118,29 @@ build-and-deploy:
             --min-replicas 0 \
             --max-replicas 2
 
+smoke-test-test:
+  name: Smoke test test environment
+  needs: build-and-deploy-test
+  runs-on: ubuntu-latest
+
+  steps:
+    - name: Wait for test container to start
+      run: sleep 30
+    
+    - name: Check backend health
+      run: |
+        curl -f ${{ secrets.TEST_BACKEND_URL }}/health || exit 1
+
+    - name: Check attractions endpoint
+      run: |
+        curl -f "${{ secrets.TEST_BACKEND_URL }}/api/attractions?city=Kuala+Lumpur" || exit 1
+
 # E2E tests (Playwright)
 # Runs againts the live test container app URL, not localhost
 # Upload report as artifact regardless pass/fail
 e2e-tests:
   name: E2E tests (Playwright)
-  needs: build-and-deploy
+  needs: smoke-test-test
   runs-on: ubuntu-latest
 
   steps: 

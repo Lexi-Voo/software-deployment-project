@@ -83,3 +83,24 @@ jobs:
             NODE_ENV=development \
             --min-replicas 0 \
             --max-replicas 2
+
+  smoke-test-dev: 
+    name: Smoke test dev
+    needs: build-and-deploy-dev
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for dev container to start
+        run: sleep 30 
+
+      - name: Check backend health
+        run: |
+          curl -f ${{ secrets.DEV_BACKEND_URL }}/health || exit 1
+
+      - name: Check attractions endpoint 
+        run: |
+          curl -f "${{ secrets.DEV_FRONTEND_URL }}/api/attractions?city=Kuala+Lumpur" || exit 1
+      
+      - name: Check frontend is up
+        run: |
+          curl -f ${{ secrets.DEV_FRONTEND_URL }} || exit 1

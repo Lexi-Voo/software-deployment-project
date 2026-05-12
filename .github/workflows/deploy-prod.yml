@@ -96,3 +96,25 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: "--prod"
+
+  smoke-test-prod:
+    name: Smoke test production
+    needs: [deploy-backend, deploy-frontend]  # wait for both backend + frontend to be deployed
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Wait for prod container to start
+        run: sleep 30
+      
+      - name: Check backend health
+        run: |
+          curl -f ${{ secrets.PROD_BACKEND_URL }}/health || exit 1
+
+      - name: Check frontend is up
+        run: |
+          curl -f ${{ secrets.PROD_FRONTEND_URL }} || exit 1
+
+      - name: Check attractions endpoint
+        run: |
+          curl -f "${{ secrets.PROD_BACKEND_URL }}/api/attractions?city=Kuala+Lumpur" || exit 1
+  
