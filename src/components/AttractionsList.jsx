@@ -41,6 +41,7 @@ export default function AttractionsList({
         {attractions.map((attraction, index) => (
           <div
             key={attraction.id || `${attraction.name}-${index}`}
+            data-testid="attraction-card"
             style={{
               minWidth: "280px",
               flexShrink: 0,
