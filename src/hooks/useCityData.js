@@ -36,6 +36,12 @@ export const useCityData = () => {
   });
 
   const searchCity = async ({ city, startDate, endDate }) => {
+    console.log("Starting city search:", {
+      city,
+      startDate,
+      endDate,
+    });
+
     setLoading(true);
     setError(null);
 
@@ -62,8 +68,11 @@ export const useCityData = () => {
         rawAttractions = [];
       }
 
-      // Fallback: if city coordinates are missing, use first attraction coordinates
-      if ((lat == null || lon == null) && Array.isArray(rawAttractions) && rawAttractions.length > 0) {
+      if (
+        (lat == null || lon == null) &&
+        Array.isArray(rawAttractions) &&
+        rawAttractions.length > 0
+      ) {
         const firstAttractionWithCoords = rawAttractions.find(
           (item) => item.lat != null && item.lng != null
         );
@@ -72,8 +81,7 @@ export const useCityData = () => {
           lat = firstAttractionWithCoords.lat;
           lon = firstAttractionWithCoords.lng;
 
-          console.log("Using attraction coordinates as weather fallback:", {
-            city,
+          console.log("Using attraction coordinates fallback:", {
             attraction: firstAttractionWithCoords.name,
             lat,
             lon,
@@ -94,26 +102,62 @@ export const useCityData = () => {
 
       const forecastLimit = new Date(today);
       forecastLimit.setDate(today.getDate() + 16);
-      const withinForecast = start >= today && end <= forecastLimit;
+      const withinForecast =
+        start >= today && end <= forecastLimit;
 
-      // --- Weather (Open-Meteo, called directly from frontend) ---
+      console.log("Date config:", {
+        start: formatDate(start),
+        end: formatDate(end),
+        withinForecast,
+      });
+
       try {
-        if (!lat || !lon) {
+        if (lat == null || lon == null) {
+          console.warn("No coordinates available for weather");
           weatherRaw = [];
         } else if (withinForecast) {
-          weatherRaw = await getWeather(lat, lon, formatDate(start), formatDate(end));
+          console.log("Fetching forecast weather...");
+
+          weatherRaw = await getWeather(
+            lat,
+            lon,
+            formatDate(start),
+            formatDate(end)
+          );
+
+          console.log("Forecast weather fetched:", weatherRaw);
         } else {
+          console.log("Fetching historical weather...");
+
           const shiftedStart = mapToLastYear(start);
           const shiftedEnd = mapToLastYear(end);
-          weatherRaw = await getHWeather(lat, lon, formatDate(shiftedStart), formatDate(shiftedEnd));
+          weatherRaw = await getHWeather(
+            lat,
+            lon,
+            formatDate(shiftedStart),
+            formatDate(shiftedEnd)
+          );
+          console.log("Historical weather fetched:", weatherRaw);
         }
       } catch (err) {
-        console.error("Weather fetch failed, trying historical fallback:", err);
-        if (lat && lon) {
+        console.error("Weather fetch failed:", err);
+
+        if (lat != null && lon != null) {
           try {
+            console.log("Trying fallback historical weather...");
             const shiftedToday = mapToLastYear(today);
-            weatherRaw = await getHWeather(lat, lon, formatDate(shiftedToday), formatDate(shiftedToday));
-          } catch (_) {
+            weatherRaw = await getHWeather(
+              lat,
+              lon,
+              formatDate(shiftedToday),
+              formatDate(shiftedToday)
+            );
+            console.log("Fallback weather fetched:", weatherRaw);
+          } catch (fallbackErr) {
+            console.error(
+              "Fallback weather fetch also failed:",
+              fallbackErr
+            );
             weatherRaw = [];
           }
         } else {
@@ -121,17 +165,11 @@ export const useCityData = () => {
         }
       }
 
-      // --- Attractions (via backend → SerpAPI Google Maps) ---
-      try {
-        rawAttractions = await getAttractions(city);
-      } catch (err) {
-        console.error("Attractions fetch failed:", err);
-        rawAttractions = [];
-      }
+  
+      const dailyWeather = Array.isArray(weatherRaw)
+        ? weatherRaw
+        : [];
 
-      const dailyWeather = Array.isArray(weatherRaw) ? weatherRaw : [];
-
-      // Normalize attraction images — SerpAPI thumbnails are already direct URLs
       const attractionsWithImages = rawAttractions.map((item) => {
         const finalImage =
           item.detailImage ||
@@ -161,15 +199,17 @@ export const useCityData = () => {
         attractions: attractionsWithImages,
         image: cityImage,
       };
+      console.log("Final search result:", result);
 
       setData(result);
       return result;
     } catch (err) {
-      console.error("Failed to fetch city data:", err);
+      console.error("Fatal searchCity error:", err);
       setError(err.message || "Failed to fetch city data");
       setData(null);
       return null;
     } finally {
+      console.log("Search completed - loading false");
       setLoading(false);
     }
   };
