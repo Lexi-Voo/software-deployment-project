@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:api": "newman run tests/api/gofly.postman_collection.json --env-var baseUrl=http://localhost:8000",
+    "test:api": "newman run tests/api/gofly.postman_collection.json --env-var baseUrl=http://localhost:3000",
     "test:e2e": "playwright test"
   },
   "dependencies": {
