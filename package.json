@@ -8,9 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run tests/unit",
-    "test:coverage": "vitest run tests/unit --coverage",
-    "test:api": "newman run tests/api/collection.json",
+    "test": "vitest run",
+    "test:api": "newman run tests/api/gofly.postman_collection.json --env-var baseUrl=http://localhost:3000",
+    "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test"
   },
   "dependencies": {
