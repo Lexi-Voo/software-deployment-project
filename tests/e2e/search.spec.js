@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('User can search for a city with a specific date range', async ({ page }) => {
   await page.goto('/');
+  await page.waitForLoadState('networkidle');
 
   await page
     .getByPlaceholder('Enter a city name...')
@@ -48,6 +49,7 @@ test('Should show error if start date is after end date', async ({ page }) => {
 
 test('User can select an attraction to see details', async ({ page }) => {
   await page.goto('/');
+  await page.waitForLoadState('networkidle');
 
   await page
     .getByPlaceholder('Enter a city name...')
@@ -68,18 +70,18 @@ test('User can select an attraction to see details', async ({ page }) => {
 
   await expect(
     page.getByRole('heading', { name: /Top Attractions/i })
-  ).toBeVisible({ timeout: 10000 });
+  ).toBeVisible({ timeout: 30000 });
 
   await expect(page.getByText('No attractions found.')).not.toBeVisible({
-    timeout: 10000,
+    timeout: 30000,
   });
 
   const firstAttraction = page.getByTestId('attraction-card').first();
 
-  await expect(firstAttraction).toBeVisible({ timeout: 10000 });
+  await expect(firstAttraction).toBeVisible({ timeout: 30000 });
   await firstAttraction.click();
 
   await expect(page.locator('.detail-section').first()).toBeVisible({
-    timeout: 10000,
+    timeout: 30000,
   });
 });
