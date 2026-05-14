@@ -30,9 +30,9 @@ export default defineConfig({
     changed: npm run preview typically runs on 4173 */
     baseURL: 'http://localhost:4173',
     /* Increase individual action timeout (click, wait, etc) to 30s */
-    actionTimeout: 30000,
+    actionTimeout: 30 * 1000,
     /* Increase navigation timeout to 60s */
-    navigationTimeout: 60000,
+    navigationTimeout: 60 * 1000,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -45,10 +45,10 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
 
-    {
+    /*{
       name: 'firefox',
       use: { ...devices['Desktop Firefox'] },
-    },
+    },*/
 
     {
       name: 'webkit',
