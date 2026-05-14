@@ -24,7 +24,8 @@ test('User can search for a city with a specific date range', async ({ page }) =
 
   await page.waitForLoadState('networkidle');
 
-  //await page.waitForTimeout(5000);
+  await page.waitForTimeout(5000);
+  
   await expect(
     page.getByPlaceholder('Enter a city name...')
   ).toBeVisible();
