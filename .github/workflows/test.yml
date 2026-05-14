@@ -126,6 +126,10 @@ jobs:
           cache: "npm"
       - name: Install frontend dependencies
         run: npm ci
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.TEST_BACKEND_URL }}
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
       - name: Run Playwright E2E tests
