@@ -12,105 +12,87 @@ name: Test and Deploy to Testing
 on:
   push:
     branches:
-      - Testing # Fires when a PR from Development is merged into Testing
+      - Testing
 
 jobs:
 
-# Unit tests
-unit-test:
-  name: Unit test (Vitest)
-  runs-on: ubuntu-latest
+  unit-test:
+    name: Unit test (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Install backend dependencies
+        run: cd backend && npm install
+      - name: Run unit tests
+        run: npx vitest run
+        env:
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+          VITE_API_URL: http://localhost:3001
 
-  steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: "npm"
+  api-tests:
+    name: API test (Newman)
+    needs: unit-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Install backend dependencies
+        run: cd backend && npm install
+      - name: Start backend
+        run: |
+          cd backend
+          node server.js &
+          npx wait-on http://localhost:3000/health --timeout 30000
+        env:
+          SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
+          PORT: 3000
+      - name: Run Newman API tests
+        run: npm run test-api
 
-    - name: Install frontend dependencies
-      run: npm ci
-
-    - name: Install backend dependencies
-      run: cd backend && npm install
-
-    - name: Run unit tests
-      run: npx vitest run
-      env:
-        SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
-        VITE_API_URL: http://localhost:3001
-
-# API tests
-api-tests:
-  name: API test (Newman)
-  needs: unit-test
-  runs-on: ubuntu-latest
-
-  steps:
-    - uses: actions/checkout@v4
-
-    - uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: "npm"
-
-    - name: Install frontend dependencies
-    - run: npm ci
-
-    - name: Install backend dependencies
-      run: |
-        cd backend
-        node server.js &
-        npx wait-on http://localhost:3000/health --timeout 30000
-        cd backend && npm install
-      env:
-        SERPAPI_API_KEY: ${{ secrets.SERPAPI_API_KEY }}
-        PORT: 3000
-
-    - name: Run Newman API tests
-      run: npx run test-api
-
-# Deploy before E2E so Playwright tests run against the test deployment
-build-and-deploy:
-  name: Build and Deploy to Testing
-  needs: api-tests
-  runs-on: ubuntu-latest
-
-  steps:
-    - uses: actions/checkout@v4
-
-    - name: Login to Azure Container Registry
-      uses: azure/docker-login@v3
-      with:
-        registry: ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER}}
-        username: ${{ secrets.ACR_USERNAME }}
-        password: ${{ secrets.ACR_PASSWORD }}
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build and Push Docker Image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./backend
-        push: true
-        tags: |
+  build-and-deploy:
+    name: Build and Deploy to Testing
+    needs: api-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
             ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:test
-            ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:test-${{ github.sha }}
-        cache-from: type=registry,ref=${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:cache-test
-        cache-to: type=registry,ref=${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:cache-test,mode=max
-
-    - name: Login to Azure
-      uses: azure/login@v2
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-    - name: Deploy to test container app
-      run:
-        az containerapp update \
+          cache-from: type=registry,ref=${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:cache-test
+          cache-to: type=registry,ref=${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:cache-test,mode=max
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Deploy to test container app
+        run: |
+          az containerapp update \
             --name gofly-backend-test \
             --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:test-${{ github.sha }} \
+            --image ${{ secrets.AZURE_REGISTRY_LOGIN_SERVER }}/gofly-backend:test \
             --set-env-vars \
               SERPAPI_API_KEY=${{ secrets.SERPAPI_API_KEY }} \
               REDIS_URL=${{ secrets.TEST_REDIS_URL }} \
@@ -118,37 +100,46 @@ build-and-deploy:
             --min-replicas 0 \
             --max-replicas 2
 
-# E2E tests (Playwright)
-# Runs againts the live test container app URL, not localhost
-# Upload report as artifact regardless pass/fail
-e2e-tests:
-  name: E2E tests (Playwright)
-  needs: build-and-deploy
-  runs-on: ubuntu-latest
+  smoke-test-test:
+    name: Smoke test test environment
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for test container to start
+        run: sleep 30
+      - name: Check backend health
+        run: |
+          curl -f ${{ secrets.TEST_BACKEND_URL }}/health || exit 1
+      - name: Check attractions endpoint
+        run: |
+          curl -f "${{ secrets.TEST_BACKEND_URL }}/api/city?name=Paris" || exit 1
 
-  steps: 
-    - uses: actions/checkout@v4
-
-    - uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: "npm"
-
-    - name: Install frontend dependencies
-      run: npm ci
-
-    - name: Install Playwright browsers
-      run: npx playwright install --with-deps
-
-    - name: Run Playwright E2E tests
-      run: npm run test-e2e 
-      env:
-        VITE_API_URL: ${{ secrets.TEST_BACKEND_URL }}
-
-    - name: Upload Playwright Report
-      uses: actions/upload-artifact@v4
-      if: always() # Upload even if tests fail
-      with:
-        name: playwright-report-${{ github.sha }}
-        path: playwright-report/
-        retention-days: 30
+  e2e-tests:
+    name: E2E tests (Playwright)
+    needs: smoke-test-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Build frontend
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.TEST_BACKEND_URL }}
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+      - name: Run Playwright E2E tests
+        run: npm run test-e2e
+        env:
+          VITE_API_URL: ${{ secrets.TEST_BACKEND_URL }}
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ github.sha }}
+          path: playwright-report/
+          retention-days: 30
