@@ -22,7 +22,10 @@ test('User can search for a city with a specific date range', async ({ page }) =
 
   await page.getByRole('button', { name: 'Search' }).click();
 
-  await page.waitForTimeout(5000);
+  await page.waitForLoadState('networkidle');
+
+  //await page.waitForTimeout(5000);
+
   await expect(
     page.getByPlaceholder('Enter a city name...')
   ).toBeVisible();
@@ -67,6 +70,12 @@ test('User can select an attraction to see details', async ({ page }) => {
   await dateInputs.nth(1).fill(endDate);
 
   await page.getByRole('button', { name: 'Search' }).click();
+
+  await page.waitForLoadState('networkidle');
+
+  await expect(
+  page.getByTestId('attraction-card').first()
+  ).toBeVisible({ timeout: 30000 });
 
   await expect(
     page.getByRole('heading', { name: /Top Attractions/i })
