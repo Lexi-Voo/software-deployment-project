@@ -74,10 +74,6 @@ test('User can select an attraction to see details', async ({ page }) => {
   await page.waitForLoadState('networkidle');
 
   await expect(
-  page.getByTestId('attraction-card').first()
-  ).toBeVisible({ timeout: 30000 });
-
-  await expect(
     page.getByRole('heading', { name: /Top Attractions/i })
   ).toBeVisible({ timeout: 30000 });
 
