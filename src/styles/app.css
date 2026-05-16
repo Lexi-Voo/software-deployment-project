@@ -365,6 +365,13 @@ body {
   padding: 12px 24px;
 }
 
+@media (max-width: 768px) {
+  .search input[type="date"] {
+    margin-left: 0;
+    max-width: 100%;
+  }
+}
+
 /* LOADING STATE */
 .loading-state {
   text-align: center;
