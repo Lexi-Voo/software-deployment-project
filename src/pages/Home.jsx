@@ -87,24 +87,33 @@ export default function Home() {
           <p>Search cities, explore weather and attractions instantly</p>
 
           <div className="search">
-            <input
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="Enter a city name..."
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            />
+            <label className="search-field search-field-city">
+              <span>City</span>
+              <input
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Enter a city name..."
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              />
+            </label>
 
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
+            <label className="search-field">
+              <span>Start date</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </label>
 
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+            <label className="search-field">
+              <span>End date</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </label>
 
             <button onClick={handleSearch}>Search</button>
           </div>
