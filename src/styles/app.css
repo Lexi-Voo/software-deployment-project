@@ -19,6 +19,12 @@
   --space-6: 32px;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 /* GLOBAL RESET */
 html, body, #root {
   margin: 0;
@@ -66,6 +72,7 @@ body {
 
 .search input {
   flex: 1;
+  min-width: 0;
   padding: var(--space-3);
   border-radius: 12px;
   border: 1px solid #e5e7eb;
@@ -152,6 +159,18 @@ body {
   .search button {
     width: 100%;
   }
+
+  .search input[type="date"] {
+    margin-left: 0;
+  }
+
+  .results-actions {
+    justify-content: stretch;
+  }
+
+  .print-button {
+    width: 100%;
+  }
   
   .city-attractions-grid {
     grid-template-columns: 1fr !important;
@@ -205,6 +224,11 @@ body {
   
   .scrollable-attractions {
     gap: 12px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .scrollable-attractions > div {
+    min-width: min(280px, 100%) !important;
   }
 }
 
@@ -225,6 +249,7 @@ body {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: var(--space-5);
+  min-width: 0;
 }
 
 /* Card Typography Overrides */

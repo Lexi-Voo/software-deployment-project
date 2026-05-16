@@ -30,7 +30,8 @@ export default function AttractionCard({
     <button
       onClick={() => onSelect(attraction)}
       style={{
-        width: "430px",
+        width: "100%",
+        maxWidth: "430px",
         border: "none",
         background: "white",
         borderRadius: "12px",
