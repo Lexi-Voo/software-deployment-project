@@ -16,9 +16,67 @@ on:
       - Production   # fires when a PR from Testing is merged here
 
 jobs:
+
+  # Verify all branches have identical application code before deploying
+  verify-code-sync:
+    name: Verify code sync across branches
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # fetch all branches, not just current
+
+      - name: Fetch all branches
+        run: |
+          git fetch origin Development
+          git fetch origin Testing
+          git fetch origin Production
+
+      - name: Check src/ is identical across branches
+        run: |
+          git diff origin/Development origin/Testing -- src/ 
+          git diff origin/Testing origin/Production -- src/
+          git diff origin/Development origin/Production -- src/
+      
+      - name: Check backend/ is identical across branches
+        run: |
+          git diff origin/Development origin/Testing -- backend/ 
+          git diff origin/Testing origin/Production -- backend/
+          git diff origin/Development origin/Production -- backend/
+
+      - name: Check package.json and index.html across branches
+        run: |
+          git diff origin/Development origin/Testing -- package.json index.html
+          git diff origin/Testing origin/Production -- package.json index.html
+          git diff origin/Development origin/Production -- package.json index.html
+
+      - name: Check workflows are identical across branches
+        run: |
+          git diff origin/Development origin/Testing -- .github/workflows/
+          git diff origin/Testing origin/Production -- .github/workflows/
+          git diff origin/Development origin/Production -- .github/workflows/
+
+      - name: Fail if differences found
+        run: |
+          if ! git diff --quiet origin/Development origin/Testing -- src/ backend/ public/ index.html package.json .github/workflows/; then
+            echo "ERROR: Code differs between Development and Testing"
+            exit 1
+          fi
+          if ! git diff --quiet origin/Development origin/Production -- src/ backend/ public/ index.html package.json .github/workflows/; then
+            echo "ERROR: Code differs between Development and Production"
+            exit 1
+          fi
+          if ! git diff --quiet origin/Testing origin/Production -- src/ backend/ public/ index.html package.json .github/workflows/; then
+            echo "ERROR: Code differs between Testing and Production"
+            exit 1
+          fi
+          echo "All branches have identical application code"
+
   # Build backend Docker image and deploy to prod container app
   deploy-backend:
     name: Deploy backend to prod
+    needs: verify-code-sync  # ensure code is identical across branches before deploying
     runs-on: ubuntu-latest
 
     steps:
@@ -70,6 +128,7 @@ jobs:
   # Runs in parallel with backend deploy since they are independent (no need to wait)
   deploy-frontend:
     name: Deploy frontend to Vercel
+    needs: verify-code-sync  # ensure code is identical across branches before deploying
     runs-on: ubuntu-latest
 
     steps:
