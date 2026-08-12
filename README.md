@@ -2,9 +2,9 @@
 
 GoFly is a decoupled and cloud-native travel dashboard featuring third-party API integration (SerpAPI, Open-Meteo) designed to optimize city-based tourism searches and get an instant destination overview.
 
-The application features a React(Vite) frontend hosted on Vercel and a containerized Node.js backend deployed on Azure Container Apps. It integrates Azure Cache for Redis for high-concurrency caching and relies on an automated multi-environment CI/CD pipeline for seamless deployment.
+The application features a React (Vite) frontend hosted on Vercel and a containerized Node.js backend deployed on Azure Container Apps. It integrates Azure Cache for Redis for high-concurrency caching and relies on an automated multi-environment CI/CD pipeline for seamless deployment.
 
-## Key Features & DevOps Highlights
+## DevOps Architecture & System Features
 
 - **Multi-Environment CI/CD Automation**: Built a linear promotion pipeline across `development`, `testing`, and `production` branches in GitHub Actions. Enforces branch protection rules, code synchronization verification, and automated testing gates (Unit tests ➔ API tests ➔ E2E tests ➔ Smoke test + Code sync verification).
 - **Caching**: Integrated Azure Cache for Redis to store external SerpAPI search results, bypassing outbound HTTP calls on cache hits and maintaining sub-second responses under heavy user traffic (designed for up to 10,000 concurrent users).
@@ -16,8 +16,8 @@ The application features a React(Vite) frontend hosted on Vercel and a container
 - **Backend**: Node.js, Express
 - **Frontend**: React, Vite
 - **Attractions & City Info**: SerpAPI (Google Maps + Google Search engines)  
-- **Weather**: Open-Meteo (free, no key needed, called directly from frontend)  
-- **Map**: MapLibre GL + free OpenStreetMap tiles (no key needed)
+- **Weather**: Open-Meteo (free)  
+- **Map**: MapLibre GL + free OpenStreetMap tiles 
 - **Caching Layer**: Azure Cache for Redis
 - **Cloud Infrastructure**: Microsoft Azure (Azure Container Apps)
 - **Containerization & Deployment**: Docker, Vercel, GitHub Actions
