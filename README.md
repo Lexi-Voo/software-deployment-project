@@ -11,6 +11,10 @@ The application features a React (Vite) frontend hosted on Vercel and a containe
 - **Serverless Autoscaling**: Configured Azure Container Apps with HTTP traffic scaling triggers (`dev`/`test`: 0–2 replicas; `prod`: 1–10 replicas) to handle sudden demand spikes while preventing cold starts in production.
 - **Full-Stack Observability**: Configured Grafana dashboards connected to Azure Monitor for backend CPU/Memory/replica activity and Vercel Observability for frontend performance and error tracking.
 
+## DevOps & Pipeline Demonstration
+
+* **Watch Video:** [Multi-Branch CI/CD & Infrastructure Demo](https://youtu.be/Idd41yiMdyE)
+* **Coverage:** Demonstrates multi-branch pipeline execution in GitHub Actions (`dev` ➔ `test` ➔ `prod`), PR checks, automated testing gates (Unit Tests, API Tests, E2E Tests, Smoke Tests), real-time observability and automated deployment triggers.
 
 ## Stack
 - **Backend**: Node.js, Express
