@@ -1,10 +1,28 @@
-# Travel Planner — Backend Setup
+# GoFly Travel Planner
+
+GoFly is a decoupled and cloud-native travel dashboard featuring third-party API integration (SerpAPI, Open-Meteo) designed to optimize city-based tourism searches and get an instant destination overview.
+
+The application features a React(Vite) frontend hosted on Vercel and a containerized Node.js backend deployed on Azure Container Apps. It integrates Azure Cache for Redis for high-concurrency caching and relies on an automated multi-environment CI/CD pipeline for seamless deployment.
+
+## Key Features & DevOps Highlights
+
+- **Multi-Environment CI/CD Automation**: Built a linear promotion pipeline across `development`, `testing`, and `production` branches in GitHub Actions. Enforces branch protection rules, code synchronization verification, and automated testing gates (Unit tests ➔ API tests ➔ E2E tests ➔ Smoke test + Code sync verification).
+- **Caching**: Integrated Azure Cache for Redis to store external SerpAPI search results, bypassing outbound HTTP calls on cache hits and maintaining sub-second responses under heavy user traffic (designed for up to 10,000 concurrent users).
+- **Serverless Autoscaling**: Configured Azure Container Apps with HTTP traffic scaling triggers (`dev`/`test`: 0–2 replicas; `prod`: 1–10 replicas) to handle sudden demand spikes while preventing cold starts in production.
+- **Full-Stack Observability**: Configured Grafana dashboards connected to Azure Monitor for backend CPU/Memory/replica activity and Vercel Observability for frontend performance and error tracking.
+
 
 ## Stack
-- **Backend**: Node.js + Express  
+- **Backend**: Node.js, Express
+- **Frontend**: React, Vite
 - **Attractions & City Info**: SerpAPI (Google Maps + Google Search engines)  
 - **Weather**: Open-Meteo (free, no key needed, called directly from frontend)  
 - **Map**: MapLibre GL + free OpenStreetMap tiles (no key needed)
+- **Caching Layer**: Azure Cache for Redis
+- **Cloud Infrastructure**: Microsoft Azure (Azure Container Apps)
+- **Containerization & Deployment**: Docker, Vercel, GitHub Actions
+- **Testing**: Vitest (Unit tests), Postman (API tests), Playwright (E2E & Smoke tests)
+- **Observability & CI/CD**: Grafana, Vercel Observability, GitHub Actions
 
 ---
 
@@ -46,17 +64,6 @@ Replace these files in your frontend `src/` directory:
 ```
 VITE_API_URL=http://localhost:8000
 ```
-
-### Remove unused env vars
-You can now **delete** these from your frontend `.env`:
-- `VITE_GEOAPIFY_API_KEY`
-- `VITE_UNSPLASH_ACCESS_KEY`
-
-And **uninstall** unused packages (if installed):
-```bash
-npm uninstall unsplash-js  # if present
-```
-
 ---
 
 ## 3. API Endpoints
